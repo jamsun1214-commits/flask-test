@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ファイル共有テストサイト</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+        .box { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .file-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
+        .preview { max-width: 200px; max-height: 150px; display: block; margin-top: 5px; }
+        button.delete-btn { background: #ff4d4d; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
+        button.delete-btn:hover { background: #cc0000; }
+    </style>
+</head>
+<body>
+
+    <h1>📁 ファイル管理・共有テスト</h1>
+
+    <div class="box">
+        <h2>1. ファイルをアップロードする</h2>
+        <form action="/upload" method="post" enctype="multipart/form-data">
+            <input type="file" name="file" required>
+            <button type="submit">アップロード</button>
+        </form>
+    </div>
+
+    <div class="box">
+        <h2>2. アップロードされたファイル一覧</h2>
+        {% if files %}
+            {% for file in files %}
+                <div class="file-item" id="file-{{ loop.index }}">
+                    <div>
+                        <a href="/uploads/{{ file }}" target="_blank"><strong>{{ file }}</strong></a>
+                        
+                        {% if file.endswith('.png') or file.endswith('.jpg') or file.endswith('.gif') %}
+                            <img class="preview" src="/uploads/{{ file }}">
+                        {% elif file.endswith('.mp4') %}
+                            <video class="preview" src="/uploads/{{ file }}" controls></video>
+                        {% elif file.endswith('.mp3') %}
+                            <audio src="/uploads/{{ file }}" controls></audio>
+                        {% endif %}
+                    </div>
+                    
+                    <button class="delete-btn" onclick="deleteFile('{{ file }}', 'file-{{ loop.index }}')">削除</button>
+                </div>
+            {% endfor %}
+        {% else: %}
+            <p>まだファイルはありません。</p>
+        {% endif %}
+    </div>
+
+    <script>
+        function deleteFile(filename, elementId) {
+            if (!confirm(filename + ' を本当に削除しますか？')) {
+                return; // キャンセルなら何もしない
+            }
+
+            // JavaScriptを使って、ページをリロードせずにサーバー(Python)に削除を命令する（Fetch API）
+            fetch('/delete/' + encodeURIComponent(filename), {
+                method: 'POST'
+            })
+            .then(response => {
+                if (response.ok) {
+                    // 削除に成功したら、画面からそのファイルの表示をパッと消す
+                    document.getElementById(elementId).remove();
+                    alert('削除しました！');
+                } else {
+                    alert('削除に失敗しました。');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('通信エラーが発生しました。');
+            });
+        }
+    </script>
+</body>
+</html>
